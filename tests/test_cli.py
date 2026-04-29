@@ -147,3 +147,32 @@ def test_diary_remove():
     result = runner.invoke(app, ["diary", "show", "--date", "2026-04-29", "--json"])
     data = _json(result)
     assert data["data"]["count"] == 0
+
+
+def test_profile_set_and_show():
+    result = runner.invoke(app, [
+        "profile", "set",
+        "--calories", "2200", "--delta", "-500",
+        "--protein", "180", "--carbs", "200", "--fat", "60",
+        "--notes", "cutting phase",
+        "--json",
+    ])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["profile"]["daily_calories"] == 2200
+    assert data["data"]["profile"]["protein_g"] == 180
+
+    result = runner.invoke(app, ["profile", "show", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["active"]["daily_calories"] == 2200
+    assert data["data"]["active"]["notes"] == "cutting phase"
+
+
+def test_profile_history():
+    runner.invoke(app, ["profile", "set", "--calories", "2000", "--protein", "150", "--json"])
+    runner.invoke(app, ["profile", "set", "--calories", "2200", "--protein", "180", "--json"])
+    result = runner.invoke(app, ["profile", "history", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] == 2

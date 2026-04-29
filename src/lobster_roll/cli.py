@@ -14,11 +14,13 @@ app = typer.Typer(help="Agent-ready nutrition diary — foods, meals, and daily 
 from lobster_roll.commands.diary import diary_app
 from lobster_roll.commands.food import food_app
 from lobster_roll.commands.meal import meal_app
+from lobster_roll.commands.profile import profile_app
 from lobster_roll.commands.summary import summary_app
 
 app.add_typer(food_app, name="food")
 app.add_typer(meal_app, name="meal")
 app.add_typer(diary_app, name="diary")
+app.add_typer(profile_app, name="profile")
 app.add_typer(summary_app, name="summary")
 
 
