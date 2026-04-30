@@ -103,3 +103,18 @@ def meal_remove(
         emit("meal_removed", {"removed": removed}, json_output)
     except LobsterError as e:
         fail(e)
+
+
+@meal_app.command("search")
+def meal_search(
+    query: Annotated[str, typer.Argument(help="Search term (substring + fuzzy matching).")],
+    limit: Annotated[int, typer.Option("--limit", "-n", help="Max results to return.")] = 20,
+    json_output: Annotated[bool, typer.Option("--json", help="Emit JSON for agents.")] = False,
+) -> None:
+    """Search meals by name or id. Combines substring and fuzzy matching."""
+    from lobster_roll.search import search_items
+    from lobster_roll.storage import list_meals
+
+    meals = list_meals()
+    results = search_items(query, meals, fields=["id", "name"], limit=limit)
+    emit("meal_search", {"query": query, "results": results, "count": len(results)}, json_output)

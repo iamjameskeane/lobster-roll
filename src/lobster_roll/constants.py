@@ -53,6 +53,14 @@ CAPABILITIES: list[dict[str, Any]] = [
         "output_schema": f"{APP_SCHEMA_PREFIX}.food_removed",
     },
     {
+        "name": "food search",
+        "description": "Search foods by name or id using substring + fuzzy matching.",
+        "requires_auth": False,
+        "safe": True,
+        "read_only": True,
+        "output_schema": f"{APP_SCHEMA_PREFIX}.food_search",
+    },
+    {
         "name": "meal add",
         "description": "Add a reusable meal (recipe) made of foods.",
         "requires_auth": False,
@@ -83,6 +91,14 @@ CAPABILITIES: list[dict[str, Any]] = [
         "safe": True,
         "read_only": False,
         "output_schema": f"{APP_SCHEMA_PREFIX}.meal_removed",
+    },
+    {
+        "name": "meal search",
+        "description": "Search meals by name or id using substring + fuzzy matching.",
+        "requires_auth": False,
+        "safe": True,
+        "read_only": True,
+        "output_schema": f"{APP_SCHEMA_PREFIX}.meal_search",
     },
     {
         "name": "diary log",

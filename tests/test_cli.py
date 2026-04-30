@@ -176,3 +176,119 @@ def test_profile_history():
     data = _json(result)
     assert data["ok"] is True
     assert data["data"]["count"] == 2
+
+
+# --- Search tests ---
+
+def _add_test_foods():
+    """Helper: add a set of foods for search testing."""
+    foods = [
+        ("Chicken Breast", "120", "23", "0", "2.6"),
+        ("Chicken Thigh", "170", "19", "0", "10"),
+        ("Brown Rice", "112", "2.6", "23", "0.9"),
+        ("White Rice", "130", "2.7", "28", "0.3"),
+        ("Oats", "389", "13", "66", "7"),
+        ("Whole Milk", "64", "3.4", "4.6", "3.6"),
+        ("Whey Protein", "120", "24", "3", "1.5"),
+    ]
+    for name, cal, protein, carbs, fat in foods:
+        runner.invoke(app, [
+            "food", "add", name,
+            "--cal", cal, "--protein", protein,
+            "--carbs", carbs, "--fat", fat, "--json",
+        ])
+
+
+def test_food_search_substring():
+    """Substring match on name should return results."""
+    _add_test_foods()
+    result = runner.invoke(app, ["food", "search", "chicken", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] == 2
+    ids = [r["id"] for r in data["data"]["results"]]
+    assert "chicken_breast" in ids
+    assert "chicken_thigh" in ids
+
+
+def test_food_search_substring_on_id():
+    """Substring match on id should also work."""
+    _add_test_foods()
+    result = runner.invoke(app, ["food", "search", "rice", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] == 2
+
+
+def test_food_search_fuzzy():
+    """Fuzzy match should catch typos like 'chiken' -> chicken."""
+    _add_test_foods()
+    result = runner.invoke(app, ["food", "search", "chiken", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] >= 2  # chicken_breast, chicken_thigh
+    ids = [r["id"] for r in data["data"]["results"]]
+    assert "chicken_breast" in ids
+
+
+def test_food_search_fuzzy_whole_ml():
+    """Fuzzy match 'whole ml' should find 'Whole Milk'."""
+    _add_test_foods()
+    result = runner.invoke(app, ["food", "search", "whole ml", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] >= 1
+    ids = [r["id"] for r in data["data"]["results"]]
+    assert "whole_milk" in ids
+
+
+def test_food_search_no_results():
+    """Search for something that doesn't match."""
+    _add_test_foods()
+    result = runner.invoke(app, ["food", "search", "salmon", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] == 0
+    assert data["data"]["results"] == []
+
+
+def test_food_search_case_insensitive():
+    """Search should be case-insensitive."""
+    _add_test_foods()
+    result = runner.invoke(app, ["food", "search", "CHICKEN", "--json"])
+    data = _json(result)
+    assert data["data"]["count"] == 2
+
+
+def test_food_search_ranked():
+    """Substring matches should rank above fuzzy-only matches."""
+    _add_test_foods()
+    result = runner.invoke(app, ["food", "search", "oats", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    # "Oats" is a direct substring match, should be first
+    assert data["data"]["results"][0]["id"] == "oats"
+
+
+def test_meal_search_substring():
+    """Meal search should match meal names."""
+    runner.invoke(app, ["food", "add", "Oats", "--cal", "389", "--protein", "13", "--json"])
+    runner.invoke(app, ["food", "add", "Whey Protein", "--cal", "120", "--protein", "24", "--json"])
+    runner.invoke(app, ["meal", "add", "Morning Oats", "--ingredients", "oats:80|whey_protein:30", "--json"])
+    runner.invoke(app, ["meal", "add", "Overnight Oats", "--ingredients", "oats:100|whey_protein:30", "--json"])
+
+    result = runner.invoke(app, ["meal", "search", "oats", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] == 2
+
+
+def test_meal_search_fuzzy():
+    """Meal fuzzy search should catch typos."""
+    runner.invoke(app, ["food", "add", "Chicken", "--cal", "120", "--protein", "23", "--json"])
+    runner.invoke(app, ["meal", "add", "Chicken Rice", "--ingredients", "chicken:200", "--json"])
+
+    result = runner.invoke(app, ["meal", "search", "chiken rce", "--json"])
+    data = _json(result)
+    assert data["ok"] is True
+    assert data["data"]["count"] >= 1
